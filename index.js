@@ -37,9 +37,13 @@ const argv = require("yargs/yargs")(process.argv.slice(2))
 	.strict()
 	.argv;
 
+console.log(argv);
 const codecs = new Codecs(argv);
 const languages = new Languages(argv);
 const server = getServer("ws", argv);
+console.log(codecs)
+console.log(languages)
+console.log(server)
 
 server.on("connection", (client) => {
 	dispatch({
