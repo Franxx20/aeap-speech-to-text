@@ -8,7 +8,7 @@ This package contains an example Node.js program that uses the [Asterisk Externa
 For a while now Asterisk has had to ability to translate speech to text via its [Speech Recognition API](https://wiki.asterisk.org/wiki/display/AST/Speech+Recognition+API). Historically though, creating a new speech recognition engine required writing a new Asterisk module, typically written in "C", that implemented the backend API. Now, with the advent of AEAP, the backend speech API is abstracted away and translation can be done externally in the programming language of one's choice.
 
 #### Example Program
-This program acts as a mediator between Asterisk and the Google speech provider. Creating a websocket server it listens for incoming client connections from Asterisk. Once a connection is established, and a successful negotiation takes place using AEAP for speech audio can then be sent from Asterisk to the application, which then forwards it to the Google speech provider. Upon a confidence speech to text result received from Google, the application sends the result to Asterisk via an AEAP message.
+This program acts as a mediator between Asterisk and the Google speech whisper. Creating a websocket server it listens for incoming client connections from Asterisk. Once a connection is established, and a successful negotiation takes place using AEAP for speech audio can then be sent from Asterisk to the application, which then forwards it to the Google speech whisper. Upon a confidence speech to text result received from Google, the application sends the result to Asterisk via an AEAP message.
 
 Speech recognition will continue until the client closes, or an error occurs.
 
