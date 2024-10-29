@@ -1,67 +1,133 @@
-#!/usr/bin/env node
-
-/*
- * Copyright 2022 Sangoma Technologies Corporation
- * Kevin Harwell <kharwell@sangoma.com>
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
-
-const { Codecs } = require("./lib/codecs");
-const { Languages } = require("./lib/languages");
-
-const { getProvider } = require("./lib/provider");
-const { getServer } = require("./lib/server");
-const { dispatch } = require("./lib/dispatcher");
-
+const {Codecs} = require("./lib/codecs");
+const {Languages} = require("./lib/languages");
+const {getServer} = require("./lib/server");
+const {dispatch} = require("./lib/dispatcher");
+const {WebSocket} = require('ws');
+const {randomUUID} = require("crypto");
+const crypto = require('crypto');
 const argv = require("yargs/yargs")(process.argv.slice(2))
-	.command("$0 [options]", "Start a speech to text server", {
-		port: {
-			alias: "p",
-			desc: "Port to listen on",
-			default: 9099,
-			type: "number",
-			group: "Server",
-		},
-	})
-	.strict()
-	.argv;
+    .command("$0 [options]", "Start a speech to text server", {
+        port: {
+            alias: "p",
+            desc: "Port to listen on",
+            default: 9099,
+            type: "number",
+            group: "Server",
+        },
+    })
+    .strict()
+    .argv;
 
-console.log(argv);
 const codecs = new Codecs(argv);
 const languages = new Languages(argv);
 const server = getServer("ws", argv);
-console.log(codecs)
-console.log(languages)
-console.log(server)
 
-server.on("connection", (client) => {
-	dispatch({
-		codecs: codecs,
-		languages: languages,
-		transport: client,
-		provider: getProvider("google", argv),
-	});
+// Initialize WebSocket connection with Whisper server
+const whisperWebSocket = new WebSocket('ws://127.0.0.1:9090');
+console.log(whisperWebSocket)
+
+const clients = new Set();
+
+whisperWebSocket.on('open', () => {
+    const data = {
+        uid: crypto.randomUUID(),
+        language: 'en_US',
+        task: 'transcribe',
+        model: 'tiny.en',
+        use_vad: true,
+    };
+    console.log('Opened connection with Whisper');
+    whisperWebSocket.send(JSON.stringify(data));
 });
 
+// whisperWebSocket.on('message', (transcription) => {
+//     // message = transcription.toString()
+//     json_message = JSON.parse(transcription)
+//     console.log('Received transcription:', json_message);
+//
+//     clients.forEach(client => {
+//         if (client.readyState === WebSocket.OPEN) {
+//             data = {
+//                 text: '',
+//                 score: 0
+//
+//             }
+//             result = {
+//                 results: [json_message.text]
+//             }
+//             request = {
+//                 request: 'set',
+//                 id: randomUUID(),
+//                 result
+//             }
+//             console.log('enviando respuesta')
+//             console.log(request)
+//             client.send(JSON.stringify(transcription), {binary: false});
+//         }
+//     });
+// });
+
+whisperWebSocket.on('message', (transcription) => {
+    const json_message = JSON.parse(transcription);
+    console.log('Received transcription:', json_message);
+
+    const results = [{
+        text: json_message.segments,
+        score: Math.floor(Math.random() * 101)
+    }]
+
+    clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            // Build the request message
+            const request = {
+                request: 'set',
+                id: randomUUID(),
+                params: {results}
+            };
+
+            console.log('Sending response:', request);
+            client.send(JSON.stringify(request), {binary: false});
+            console.log('response send')
+        }
+    });
+});
+
+whisperWebSocket.on('close', (close_status_code, close_msg) => {
+    console.log('[INFO]: Closed connection to Whisper server', close_msg, close_status_code);
+});
+
+whisperWebSocket.on('error', (err) => {
+    console.error('[ERROR]: Whisper connection failed', err.message);
+});
+
+// Handle new client connections to your server
+server.on("connection", async (client) => {
+    console.log('Client connected');
+    clients.add(client);
+
+    client.on("close", () => {
+        clients.delete(client);
+    });
+
+    await dispatch({
+        codecs: codecs,
+        languages: languages,
+        transport: client,
+        provider: whisperWebSocket
+    });
+});
+
+// Handle server close signals
 process.on("SIGINT", () => {
-	server.close();
-	process.exit(0);
+    server.close(() => {
+        console.log('Server closed on SIGINT');
+        process.exit(0);
+    });
 });
 
 process.on("SIGTERM", () => {
-	server.close();
-	process.exit(0);
+    server.close(() => {
+        console.log('Server closed on SIGTERM');
+        process.exit(0);
+    });
 });
-
-

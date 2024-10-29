@@ -19,7 +19,8 @@
 	],
 	"dependencies": {
 		"@google-cloud/speech": "^4.9.0",
-		"ws": "^8.3.0",
+		"websocket": "^1.0.35",
+		"ws": "^8.18.0",
 		"yargs": "^17.3.1"
 	}
 }
