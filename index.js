@@ -21,10 +21,11 @@ const argv = require("yargs/yargs")(process.argv.slice(2))
 const codecs = new Codecs(argv);
 const languages = new Languages(argv);
 const server = getServer("ws", argv);
+console.log(codecs)
 
 // Initialize WebSocket connection with Whisper server
 const whisperWebSocket = new WebSocket('ws://127.0.0.1:9090');
-console.log(whisperWebSocket)
+// console.log(whisperWebSocket)
 
 const clients = new Set();
 
