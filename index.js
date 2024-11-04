@@ -1,7 +1,7 @@
 const {Codecs} = require("./lib/codecs");
 const {Languages} = require("./lib/languages");
 const {getServer} = require("./lib/server");
-const {dispatch} = require("./lib/dispatcher");
+const {dispatch, handle_whisper_message} = require("./lib/dispatcher");
 const {WebSocket} = require('ws');
 const {randomUUID} = require("crypto");
 const crypto = require('crypto');
@@ -26,6 +26,7 @@ console.log(codecs)
 // Initialize WebSocket connection with Whisper server
 const whisperWebSocket = new WebSocket('ws://127.0.0.1:9090');
 // console.log(whisperWebSocket)
+
 
 const clients = new Set();
 
@@ -67,30 +68,32 @@ whisperWebSocket.on('open', () => {
 //         }
 //     });
 // });
-
 whisperWebSocket.on('message', (transcription) => {
-    const json_message = JSON.parse(transcription);
-    console.log('Received transcription:', json_message);
+    handle_whisper_message(transcription)
+    // const json_message = JSON.parse(transcription);
+    // console.log('Received transcription:', json_message);
+    //
+    // if (json_message.is_final === true) {
+    //     // Extract texts from segments if they exist
+    //     const results = json_message.segments?.map(segment => ({
+    //         text: segment.text,
+    //         score: Math.floor(Math.random() * 101)
+    //     })) || [];
 
-    const results = [{
-        text: json_message.segments,
-        score: Math.floor(Math.random() * 101)
-    }]
-
-    clients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) {
-            // Build the request message
-            const request = {
-                request: 'set',
-                id: randomUUID(),
-                params: {results}
-            };
-
-            console.log('Sending response:', request);
-            client.send(JSON.stringify(request), {binary: false});
-            console.log('response send')
-        }
-    });
+    // clients.forEach(client => {
+    //     if (client.readyState === WebSocket.OPEN) {
+    //         const request = {
+    //             request: 'set',
+    //             id: randomUUID(),
+    //             params: {results}
+    //         };
+    //
+    //         console.log('Sending response:', request);
+    //         client.send(JSON.stringify(request), {binary: false});
+    //         console.log('response sent');
+    //     }
+    // });
+    // }
 });
 
 whisperWebSocket.on('close', (close_status_code, close_msg) => {
