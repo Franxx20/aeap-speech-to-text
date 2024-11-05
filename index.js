@@ -18,7 +18,7 @@ const languages = new Languages(argv);
 const server = getServer("ws", argv);
 
 // Initialize WebSocket connection with Whisper server
-const whisperWebSocket = new WebSocket('ws://127.0.0.1:9090');
+const whisperWebSocket = new WebSocket('ws://transcriber:9090');
 const clients = new Set(); // Track client connections
 
 whisperWebSocket.on('open', () => {
